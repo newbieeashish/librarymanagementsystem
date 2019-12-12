@@ -1,0 +1,36 @@
+create table project1_books_load (
+ISBN10 varchar(255),
+ISBN13 varchar(255),
+Title varchar(255),
+Author varchar(255),
+Cover varchar(255),
+Publisher varchar(255),
+pages int
+);
+
+
+create table project1_book_copies_load (
+book_id varchar(255),
+branch_id int,
+no_of_copies int
+);
+
+
+create table project1_borrowers_load (
+ID0000id varchar(255)
+,ssn varchar(255),
+first_name varchar(255),
+last_name varchar(255),
+email varchar(255),
+address varchar(255),
+city varchar(255),
+state varchar(255),
+phone varchar(255)
+);
+
+
+create table project1_library_branch_load (
+branch_id int,
+branch_name varchar(255),
+address varchar(255)
+);
