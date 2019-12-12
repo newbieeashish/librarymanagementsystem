@@ -1,0 +1,14 @@
+/* a single search functionality to locate a book given any combination of
+ISBN, title, and/or Author(s). */
+UNDEFINE substring2;
+select a.ISBN, a.title,d.branch_id, c.name from Project1_books a,
+Project1_books_authors b, project1_authors c, Project1_Book_copies d where
+a.isbn = b.isbn and
+b.author_id = c.author_id and a.isbn = d.isbn and (upper(a.isbn) like
+upper('%&&substring2%') or upper(a.title) like upper('%&&substring2%') or
+upper(c.name) like upper('%&&substring2%'));
+/* specific library branch location context */
+UNDEFINE branch_no
+undefine isbn
+select b.isbn, b.title, a.book_id from Project1_Book_copies a, Project1_books b
+where a.isbn = b.isbn and branch_id = '&&branch_no' and a.isbn = '&&isbn';
