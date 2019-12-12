@@ -1,0 +1,206 @@
+
+/*create table and insert data in Project1_books*/
+
+create table Project1_books(
+isbn varchar(255),
+title varchar(255)
+);
+
+alter table project1_books add constraint pk_isbn primary key(isbn);
+
+insert into Project1_books(isbn,title) select isbn10,title from
+project1_books_load where author is not null;
+
+
+
+/* Project1_author_temp to seperate the authors*/
+create table Project1_author_temp(
+author_name varchar(255)
+);
+
+
+insert into Project1_author_temp select REGEXP_SUBSTR (author, '[^,]+', 1, 1)
+from project1_books_load where author is not null;
+
+insert into Project1_author_temp select REGEXP_SUBSTR (author, '[^,]+', 1, 2)
+from project1_books_load where author is not null;
+insert into Project1_author_temp select REGEXP_SUBSTR (author, '[^,]+', 1, 3) ;
+from project1_books_load where author is not null;
+
+/* create table and insert data in project1_authors */
+
+create table project1_authors(
+author_id varchar(255),
+name varchar(255));
+alter table project1_authors add constraint pk_author_id primary key(author_id);
+CREATE TRIGGER author_id
+BEFORE INSERT ON project1_authors
+FOR EACH ROW
+BEGIN
+SELECT author_id.nextval
+INTO :new.author_id
+FROM dual;
+END;
+insert into project1_authors(name) select distinct author_name from
+project1_author_temp where author_name is not null;
+
+
+/ * create table and insert data in Project1_books_authors*/
+
+create table Project1_books_authors(
+author_id varchar(255),
+isbn varchar(255),
+CONSTRAINT pk_book_author primary key (author_id,isbn),
+CONSTRAINT fk_book_author_id foreign key (author_id) references project1_author
+(author_id),
+CONSTRAINT fk_book_author_isbn foreign key (isbn) references
+Project1_books(isbn)
+);
+insert into Project1_books_authors select b.author_id, isbn10 from
+project1_books_load a, project1_authors b where REGEXP_SUBSTR (a.author,
+'[^,]+', 1, 1) = b.name or REGEXP_SUBSTR (a.author, '[^,]+', 1, 2) = b.name or
+REGEXP_SUBSTR (a.author, '[^,]+', 1, 3) = b.name ;
+
+
+/* create table and insert data in  Project1_library_branch*/
+
+create table Project1_library_branch(
+branch_id varchar(255),
+branch_name varchar(255),
+address varchar(255)
+);
+insert into Project1_library_branch select branch_id,branch_name,address from
+project1_library_branch_load;
+alter table Project1_library_branch add constraint PK_Project1_library_branch
+primary key(branch_id);
+
+
+/* create table and insert data in Project1_Book_copies */
+
+create table Project1_Book_copies(
+book_id varchar(255) ,
+isbn varchar(255),
+branch_id varchar(255),
+constraint pk_book_copies primary key (book_id),
+constraint fk_book_copies_isbn foreign key (isbn) references Project1_books
+(isbn) ,
+constraint fk_book_copies_branch_id foreign key (branch_id) references
+Project1_library_branch (branch_id)
+);
+create sequence book_id_sq;
+CREATE TRIGGER book_id
+BEFORE INSERT ON Project1_Book_copies
+FOR EACH ROW
+BEGIN
+SELECT book_id_sq.nextval
+INTO :new.book_id
+FROM dual;
+END;
+insert into Project1_Book_copies ( isbn, branch_id) select book_id, branch_id
+from project1_book_copies_load where book_id in(select isbn from project1_books
+) ;
+
+/* create table and insert data in  Project1_Borrower */
+
+create table Project1_Borrower(
+card_no varchar(255),
+ssn varchar(255),
+Fname varchar(255),
+Lname varchar(255),
+Address varchar(255),
+city varchar(255),
+state varchar(255),
+Phone varchar(255),
+constraint pk_card_no primary key(card_no)
+);
+insert into Project1_Borrower (card_no,ssn,Fname,Lname,Address,city,state,Phone)
+select ID0000ID,SSN,FIRST_NAME,LAST_NAME,ADDRESS,CITY,STATE,PHONE from
+project1_borrowers_load;
+
+
+
+/*create table and insert data in Project1_book_loans */
+
+
+create table Project1_book_loans(
+loan_id varchar(255),
+book_id varchar(255),
+card_no varchar(255),
+date_out date,
+due_date date,
+date_in date,
+constraint pk_loan_id primary key(loan_id),
+constraint fk_book_id foreign key (book_id) references Project1_Book_copies
+(book_id) ,
+constraint fk_card_no foreign key (card_no) references Project1_Borrower
+(card_no)
+);
+create sequence loan_id_sq;
+CREATE TRIGGER loan_id
+BEFORE INSERT ON Project1_book_loans
+FOR EACH ROW
+BEGIN
+SELECT loan_id_sq.nextval
+INTO :new.loan_id
+FROM dual;
+END;
+create table temp_table1 (
+id1 int,
+card_no varchar(255),
+constraint pk_id1 primary key (id1)
+);
+CREATE TRIGGER id1
+BEFORE INSERT ON temp_table1
+FOR EACH ROW
+BEGIN
+SELECT id1_sq.nextval
+INTO :new.id1
+FROM dual;
+END;
+insert into project1_book_loans (book_id, card_no) select a.book_id, b.card_no
+from project1_book_copies a,temp_table1 b where a.book_id = b.id1 and rownum <
+555;
+/*date_out*/
+BEGIN
+FOR a IN (select * from project1_book_loans)
+LOOP
+UPDATE project1_book_loans set date_out = (select
+(TO_TIMESTAMP('1970-01-01 00:00:00.000', 'YYYY-MM-DD hh24:mi:SS.FF3')
++ numtodsinterval( round(dbms_random.value() * 31536000) + 1546322400,
+'SECOND'))
+from dual) where a.book_id = book_id;
+END LOOP;
+END;
+/*datein and duedate */
+BEGIN
+for o in (select * from project1_book_loans)
+LOOP
+UPDATE project1_book_loans
+SET date_in = (select
+(TO_TIMESTAMP(o.date_out, 'DD-MM-YY hh24:mi:SS.FF3')
++ numtodsinterval( round(dbms_random.value() * 60*24*3600) , 'SECOND'))
+from dual), due_date = (select
+(TO_TIMESTAMP(o.date_out, 'DD-MM-YY hh24:mi:SS.FF3')
++ numtodsinterval( 30*24*3600 , 'SECOND'))
+from dual) where o.book_id = book_id ;
+END LOOP;
+END;
+
+
+/* create table and insert data in Project1_fines */
+
+create table Project1_fines(
+loan_id varchar(255),
+fine_amt varchar(255),
+paid varchar(255),
+constraint pk_fine_loan primary key(loan_id),
+constraint fk_fine_loan foreign key (loan_id) references Project1_book_loans
+(loan_id)
+);
+insert into Project1_fines (loan_id, fine_amt) select loan_id, 0.25*
+(floor(date_in - due_date)) from Project1_book_loans where floor(date_in -
+due_date) > 0;
+update Project1_fines set paid = CASE when fine_amt<6.0 then 'PAID' else
+'UNPAID' END;
+
+
