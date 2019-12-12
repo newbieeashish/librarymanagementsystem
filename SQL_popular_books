@@ -1,0 +1,21 @@
+/*Top 10 most popular books in the last month*/
+
+select isbn, title from
+(
+select * from
+(
+select a.isbn as isbn, sum(b.w) as summation, c.title as title,
+row_number() over(order by sum(b.w) desc nulls last) rnm
+from Project1_Book_copies a,
+(
+select book_id, count(loan_id) w
+from Project1_book_loans
+where to_char(sysdate,'MM') =
+to_char(to_date(date_out,'DD-MM-YYYY HH24:Mi:SS'), 'MM') +1
+group by book_id
+) b , Project1_books c
+where a.book_id = b.book_id and a.isbn = c.isbn group by a.isbn,
+c.title
+)
+where rnm<=10
+);
